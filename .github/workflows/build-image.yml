@@ -1,0 +1,72 @@
+name: Build image
+
+# Gera a imagem .img do Skycroft na nuvem (sem precisar de Docker/WSL local).
+# Rode manualmente em Actions -> "Build image" -> "Run workflow", ou publique
+# uma tag v* para gerar a imagem e anexá-la a um Release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ap_ssid:
+        description: "Nome do hotspot de configuração"
+        required: false
+        default: "Skycroft-Setup"
+      ap_pass:
+        description: "Senha do hotspot (vazio = rede aberta)"
+        required: false
+        default: ""
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # necessário só pra anexar o .img ao Release nas tags
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout skycroft-ticker
+        uses: actions/checkout@v4
+
+      - name: Liberar espaço em disco no runner
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Assar a imagem (Armbian build)
+        env:
+          SKYCROFT_BUILD_DIR: ${{ github.workspace }}/armbian-build
+          SKYCROFT_AP_SSID: ${{ github.event.inputs.ap_ssid }}
+          SKYCROFT_AP_PASS: ${{ github.event.inputs.ap_pass }}
+        run: |
+          chmod +x image/build-image.sh
+          ./image/build-image.sh
+
+      - name: Coletar as imagens geradas
+        id: collect
+        run: |
+          mkdir -p dist
+          # .img (e .sha) ficam em output/images do Armbian build
+          find "${{ github.workspace }}/armbian-build/output/images" \
+               -maxdepth 1 -type f \( -name '*.img' -o -name '*.img.sha' -o -name '*.img.xz' -o -name '*.txt' \) \
+               -exec cp -v {} dist/ \; || true
+          ls -la dist || true
+
+      - name: Publicar como artifact do workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: skycroft-ticker-img
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Anexar ao Release (somente em tags v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

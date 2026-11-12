@@ -68,8 +68,11 @@ sudo reboot
 
 O `install.sh` configura: servidor + **kiosk Chromium** (autostart via systemd),
 **onboarding WiFi** (hotspot + QR na TV + portal no celular), **Tailscale** (com
-Tailscale SSH) e **SSH** habilitado. Passo a passo e geração do `.img` em
-[`BUILD-IMAGE.md`](BUILD-IMAGE.md).
+Tailscale SSH) e **SSH** habilitado.
+
+**Imagem pronta (mais fácil):** em **Actions → "Build image" → Run workflow**, o
+GitHub assa o `.img` na nuvem e você baixa — sem Docker/WSL local. Passo a passo e
+alternativas em [`BUILD-IMAGE.md`](BUILD-IMAGE.md).
 
 ## API do servidor
 

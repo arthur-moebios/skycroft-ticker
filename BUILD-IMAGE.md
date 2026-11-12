@@ -15,7 +15,27 @@ A imagem leva **tudo embutido** e no **1º boot já funciona**, sem teclado:
 
 ---
 
-## Caminho recomendado — assar a imagem (1 comando)
+## Caminho mais fácil — GitHub Actions (na nuvem, sem instalar nada)
+
+O repositório tem um workflow que **assa o `.img` nos servidores do GitHub** e te
+entrega a imagem pra baixar. Não precisa de Docker, WSL nem Linux local.
+
+1. Abra o repositório em **Actions → "Build image" → "Run workflow"**
+   (dá pra ajustar o nome/senha do hotspot ali; em branco = rede aberta).
+2. Espere o build terminar (uns 30–60 min).
+3. Baixe o `.img` no **artifact `skycroft-ticker-img`** daquela execução.
+4. Grave com o **balenaEtcher**. Pronto.
+
+Para versionar: publique uma tag `vX.Y.Z` (`git tag v1.0.0 && git push --tags`) e o
+mesmo workflow anexa o `.img` a um **Release**.
+
+> É um build Armbian de verdade rodando no runner (com limpeza de disco automática).
+> A 1ª execução é a que valida tudo; se algum passo precisar de ajuste de disco/tempo,
+> o log do Actions aponta onde.
+
+---
+
+## Alternativa — assar localmente (1 comando)
 
 Usa o **Armbian build framework** pra montar uma imagem Armbian trixie Minimal do
 Orange Pi Zero 2W com o Skycroft já provisionado.
