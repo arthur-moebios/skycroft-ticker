@@ -38,6 +38,11 @@ jobs:
           docker-images: true
           swap-storage: true
 
+      - name: Registrar QEMU/binfmt no host (emulação ARM)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64,arm
+
       - name: Assar a imagem (Armbian build)
         env:
           # FORA do checkout do repo, senão o rsync do projeto se copiaria recursivamente
