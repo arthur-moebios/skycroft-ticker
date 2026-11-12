@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skycroft Ticker — TV</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="stage">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="bolt"><img src="assets/skycroft-logo.svg" alt="Skycroft"></div>
+        <div class="name">SKYCROFT <span>TICKER</span></div>
+      </div>
+      <div class="clock">
+        <div class="time">--:--</div>
+        <div class="date">—</div>
+      </div>
+    </header>
+
+    <!-- Corpo -->
+    <main class="body">
+      <!-- Jogo em destaque -->
+      <section class="featured">
+        <div class="feat-head">
+          <div class="league-badge">—</div>
+          <div class="status-pill in"><span class="dot"></span>AO VIVO</div>
+        </div>
+        <div class="matchup">
+          <div class="team-row">
+            <div class="crest"></div>
+            <div><div class="team-name">—</div><div class="team-sub"></div></div>
+            <div class="score">0</div>
+          </div>
+          <div class="vs-sep"></div>
+          <div class="team-row">
+            <div class="crest"></div>
+            <div><div class="team-name">—</div><div class="team-sub"></div></div>
+            <div class="score">0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mais jogos ao vivo -->
+      <aside class="side">
+        <div class="side-title">Mais jogos ao vivo</div>
+        <div class="mini-list"></div>
+      </aside>
+    </main>
+
+    <!-- Faixa rolando -->
+    <footer class="ticker">
+      <div class="ticker-label">⚽ PLACARES</div>
+      <div class="ticker-track"></div>
+    </footer>
+  </div>
+
+  <script src="mock-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

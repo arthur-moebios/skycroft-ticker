@@ -1,0 +1,241 @@
+/* ===== Skycroft Ticker — TV view (lógica) ===== */
+
+const LEAGUE_LOGO = {
+  NFL: "https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png",
+  NBA: "https://a.espncdn.com/i/teamlogos/leagues/500/nba.png",
+};
+function leagueLogo(abbrev) {
+  const u = LEAGUE_LOGO[abbrev];
+  return u ? `<img class="llogo" src="${u}" alt="${abbrev}" onerror="this.remove()">` : "";
+}
+
+const FAVS = new Set(window.MOCK_DATA.favorites || []);
+const isFavTeam = (abbr) => FAVS.has(abbr);
+const isFavEvent = (e) => isFavTeam(e.home.abbr) || isFavTeam(e.away.abbr);
+
+// Achata os eventos com a info da liga junto
+function allEvents() {
+  const out = [];
+  for (const lg of window.MOCK_DATA.leagues) {
+    for (const ev of lg.events) out.push({ ...ev, league: lg.abbrev, leagueName: lg.name });
+  }
+  return out;
+}
+
+// Ordena: ao vivo > agendado > encerrado; dentro de cada grupo, favoritos primeiro.
+function prioritized() {
+  const rank = (e) => (e.state === "in" ? 0 : e.state === "pre" ? 1 : 2);
+  return allEvents().sort((a, b) => {
+    if (rank(a) !== rank(b)) return rank(a) - rank(b);
+    return (isFavEvent(a) ? 0 : 1) - (isFavEvent(b) ? 0 : 1);
+  });
+}
+const liveEvents = () => allEvents().filter((e) => e.state === "in");
+
+/* ---- Escala o palco 1920x1080 para caber na janela (kiosk em qualquer tela) ---- */
+function scaleStage() {
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  document.getElementById("stage").style.transform = `translate(-50%, -50%) scale(${s})`;
+}
+window.addEventListener("resize", scaleStage);
+
+/* ---- Relógio ---- */
+function updateClock() {
+  const now = new Date();
+  document.querySelector(".clock .time").textContent =
+    now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  document.querySelector(".clock .date").textContent =
+    now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+}
+
+/* ---- Rótulos de status ---- */
+function favMark(abbr) { return isFavTeam(abbr) ? "★ " : ""; }
+function statusText(ev) {
+  if (ev.state === "in") return "AO VIVO · " + ev.status;
+  if (ev.state === "post") return ev.status || "ENCERRADO";
+  return ev.status || "EM BREVE";
+}
+
+/* ---- Card em destaque (rotaciona entre os jogos priorizados) ---- */
+let featIdx = 0;
+
+// Formata horário de início: "sáb 15/11 · 22:00"
+function formatStart(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return (
+    d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }) +
+    " · " +
+    d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+  );
+}
+
+// Destaque FIXO nos favoritos: para cada favorito, pega jogo ao vivo > próximo > mais recente.
+function favGames() {
+  const evs = allEvents();
+  const out = [];
+  for (const ab of window.MOCK_DATA.favorites || []) {
+    const mine = evs.filter((e) => e.home.abbr === ab || e.away.abbr === ab);
+    if (!mine.length) continue;
+    const live = mine.find((e) => e.state === "in");
+    const nextUp = mine
+      .filter((e) => e.state === "pre")
+      .sort((a, b) => new Date(a.starts || 0) - new Date(b.starts || 0))[0];
+    const recent = mine
+      .filter((e) => e.state === "post")
+      .sort((a, b) => new Date(b.starts || 0) - new Date(a.starts || 0))[0];
+    out.push(live || nextUp || recent || mine[0]);
+  }
+  return out;
+}
+// Exibidor principal: AO VIVO tem prioridade (favoritos ao vivo > outros ao vivo),
+// depois o próximo jogo dos favoritos. Sem nada disso, cai no geral priorizado.
+function featPool() {
+  const evs = allEvents();
+  const favLive = evs.filter((e) => e.state === "in" && isFavEvent(e));
+  const otherLive = evs.filter((e) => e.state === "in" && !isFavEvent(e));
+  const favNext = favGames().filter((e) => e.state !== "in");
+  const seen = new Set();
+  const pool = [];
+  for (const e of [...favLive, ...otherLive, ...favNext]) {
+    if (!seen.has(e.id)) { seen.add(e.id); pool.push(e); }
+  }
+  return pool.length ? pool.slice(0, 6) : prioritized().slice(0, 6);
+}
+function renderFeatured() {
+  const pool = featPool();
+  if (!pool.length) return;
+  featIdx = featIdx % pool.length;
+  const ev = pool[featIdx];
+  const el = document.querySelector(".featured");
+  el.querySelector(".league-badge").innerHTML = leagueLogo(ev.league) + `<span>${ev.leagueName}</span>`;
+  const pill = el.querySelector(".status-pill");
+  pill.className = "status-pill " + ev.state;
+  if (ev.state === "in") pill.innerHTML = '<span class="dot"></span>AO VIVO · ' + ev.status;
+  else if (ev.state === "pre") pill.innerHTML = "PRÓXIMO JOGO · " + (formatStart(ev.starts) || ev.status);
+  else pill.innerHTML = ev.status || "ENCERRADO";
+
+  const rows = el.querySelectorAll(".team-row");
+  fillTeamRow(rows[0], ev.away);
+  fillTeamRow(rows[1], ev.home);
+}
+function fillTeamRow(row, team) {
+  applyCrest(row.querySelector(".crest"), team);
+  row.querySelector(".team-name").textContent = favMark(team.abbr) + team.name;
+  row.querySelector(".team-sub").textContent = team.abbr;
+  row.querySelector(".score").textContent = team.score;
+}
+
+/* Logo real do time (com fallback pra sigla + cor) */
+function applyCrest(el, team) {
+  const ab = team.abbr.slice(0, 3);
+  if (team.logo) {
+    el.classList.add("has-logo");
+    el.style.background = "rgba(255,255,255,.05)";
+    el.innerHTML = `<img class="logo" src="${team.logo}" alt="${ab}" onerror="logoFail(this,'${ab}','${team.color}')">`;
+  } else {
+    el.classList.remove("has-logo");
+    el.style.background = team.color;
+    el.textContent = ab;
+  }
+}
+window.logoFail = function (img, ab, color) {
+  const el = img.parentElement;
+  el.classList.remove("has-logo");
+  el.style.background = color;
+  el.textContent = ab;
+};
+
+/* ---- Lista lateral: próximos / ao vivo ---- */
+function renderSide() {
+  const pool = featPool();
+  const featured = pool[featIdx % pool.length];
+  const rest = prioritized().filter((e) => !featured || e.id !== featured.id).slice(0, 4);
+  document.querySelector(".side-title").textContent =
+    liveEvents().length ? "Ao vivo & a seguir" : "Próximos jogos";
+  const list = document.querySelector(".mini-list");
+  list.innerHTML = "";
+  rest.forEach((ev) => {
+    const d = document.createElement("div");
+    d.className = "mini";
+    const cls = ev.state === "in" ? "in" : ev.state === "post" ? "post" : "pre";
+    d.innerHTML = `
+      <div class="mini-top">
+        <span class="mini-league">${leagueLogo(ev.league)}${ev.league}</span>
+        <span class="mini-status ${cls}">${ev.state === "in" ? "● " : ""}${statusText(ev)}</span>
+      </div>
+      ${miniTeam(ev.away)}${miniTeam(ev.home)}`;
+    list.appendChild(d);
+  });
+}
+function miniTeam(t) {
+  const ab = t.abbr.slice(0, 3);
+  const crest = t.logo
+    ? `<span class="mini-crest has-logo"><img class="logo" src="${t.logo}" alt="${ab}" onerror="logoFail(this,'${ab}','${t.color}')"></span>`
+    : `<span class="mini-crest" style="background:${t.color}">${ab}</span>`;
+  return `<div class="mini-team">
+      ${crest}
+      <span class="mini-name">${favMark(t.abbr)}${t.name}</span>
+      <span class="mini-score">${t.score}</span>
+    </div>`;
+}
+
+/* ---- Faixa rolando (ticker) — duplica o conteúdo p/ loop sem emenda ---- */
+function renderTicker() {
+  const items = prioritized().map(tkItem).join("");
+  document.querySelector(".ticker-track").innerHTML = items + items;
+}
+function tkItem(ev) {
+  const st = ev.state === "in" ? "in" : ev.state === "post" ? "post" : "pre";
+  const shortStatus = ev.state === "in" ? ev.status : ev.state === "post" ? "Final" : ev.status;
+  return `<span class="tk-item">
+      <span class="tk-league">${leagueLogo(ev.league)}${ev.league}</span>
+      ${tkLogo(ev.away)}
+      <span class="tk-team">${favMark(ev.away.abbr)}${ev.away.abbr}</span>
+      <span class="tk-score">${ev.away.score}</span>
+      <span class="tk-status">×</span>
+      <span class="tk-score">${ev.home.score}</span>
+      <span class="tk-team">${ev.home.abbr}${isFavTeam(ev.home.abbr) ? " ★" : ""}</span>
+      ${tkLogo(ev.home)}
+      <span class="tk-status ${st}">${shortStatus}</span>
+    </span>`;
+}
+function tkLogo(t) {
+  return t.logo
+    ? `<img class="tk-logo" src="${t.logo}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'tk-abbr-color',style:'background:${t.color}'}))">`
+    : `<span class="tk-abbr-color" style="background:${t.color}"></span>`;
+}
+
+/* ---- Simula updates ao vivo (só quando há jogo ao vivo) ---- */
+function simulateLive() {
+  const live = liveEvents();
+  if (!live.length) return;
+  const ev = live[Math.floor(Math.random() * live.length)];
+  const side = Math.random() < 0.5 ? "away" : "home";
+  ev[side].score += ev.league === "NBA" ? 2 : ev.league === "NFL" ? 7 : 1;
+
+  const pool = featPool();
+  const feat = pool[featIdx % pool.length];
+  if (feat && feat.id === ev.id) {
+    renderFeatured();
+    const row = document.querySelectorAll(".team-row")[side === "away" ? 0 : 1];
+    const sc = row.querySelector(".score");
+    sc.classList.remove("flash"); void sc.offsetWidth; sc.classList.add("flash");
+  }
+  renderSide();
+  renderTicker();
+}
+
+/* ---- Boot ---- */
+function boot() {
+  scaleStage();
+  updateClock();
+  renderFeatured();
+  renderSide();
+  renderTicker();
+  setInterval(updateClock, 1000);
+  setInterval(() => { featIdx++; renderFeatured(); renderSide(); }, 8000);
+  setInterval(simulateLive, 3500);
+}
+document.addEventListener("DOMContentLoaded", boot);
