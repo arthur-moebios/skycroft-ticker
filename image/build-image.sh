@@ -24,6 +24,13 @@ command -v rsync >/dev/null  || { echo "rsync é necessário."; exit 1; }
 HERE="$(cd "$(dirname "$0")/.." && pwd)"                 # raiz do repo skycroft
 WORK="${SKYCROFT_BUILD_DIR:-$HOME/armbian-skycroft}"
 
+# O diretório de build NÃO pode ficar dentro do repo, senão o rsync abaixo
+# copiaria a si mesmo em loop. Se estiver, joga pra fora (ao lado do repo).
+case "$WORK/" in
+  "$HERE/"*) WORK="$(dirname "$HERE")/armbian-skycroft"
+             echo "!! SKYCROFT_BUILD_DIR estava dentro do repo; usando $WORK"; ;;
+esac
+
 echo "==> Armbian build em: $WORK"
 if [ -d "$WORK/.git" ]; then (cd "$WORK" && git pull --ff-only || true)
 else git clone --depth=1 https://github.com/armbian/build "$WORK"; fi

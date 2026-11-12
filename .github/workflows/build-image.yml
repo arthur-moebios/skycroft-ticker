@@ -40,7 +40,8 @@ jobs:
 
       - name: Assar a imagem (Armbian build)
         env:
-          SKYCROFT_BUILD_DIR: ${{ github.workspace }}/armbian-build
+          # FORA do checkout do repo, senão o rsync do projeto se copiaria recursivamente
+          SKYCROFT_BUILD_DIR: ${{ runner.temp }}/armbian-skycroft
           SKYCROFT_AP_SSID: ${{ github.event.inputs.ap_ssid }}
           SKYCROFT_AP_PASS: ${{ github.event.inputs.ap_pass }}
         run: |
@@ -52,7 +53,7 @@ jobs:
         run: |
           mkdir -p dist
           # .img (e .sha) ficam em output/images do Armbian build
-          find "${{ github.workspace }}/armbian-build/output/images" \
+          find "${{ runner.temp }}/armbian-skycroft/output/images" \
                -maxdepth 1 -type f \( -name '*.img' -o -name '*.img.sha' -o -name '*.img.xz' -o -name '*.txt' \) \
                -exec cp -v {} dist/ \; || true
           ls -la dist || true
