@@ -1,0 +1,4 @@
+# Instalado em /etc/sudoers.d/skycroft (modo 0440).
+# Permite o servidor (usuário 'skycroft') conectar o aparelho a um WiFi,
+# sem senha de sudo. É o ÚNICO comando privilegiado liberado ao servidor.
+skycroft ALL=(root) NOPASSWD: /opt/skycroft/scripts/skycroft-wifi-connect.sh

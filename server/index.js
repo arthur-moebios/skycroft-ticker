@@ -11,11 +11,13 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { fetchAll, hasLive } = require("./espn");
+const net = require("./net");
 
 const PORT = process.env.PORT || 8099;
 const ROOT = path.join(__dirname, "..");
 const DISPLAY_DIR = path.join(ROOT, "display");
 const REMOTE_DIR = path.join(ROOT, "remote");
+const SETUP_DIR = path.join(ROOT, "setup");
 const STATE_FILE = path.join(__dirname, "control-state.json");
 
 const LIVE_MS = 30_000;   // há jogo ao vivo
@@ -51,7 +53,7 @@ function saveControl() {
 }
 
 function snapshot() {
-  return { updatedAt, favorites: control.favorites, control, leagues, error: lastError };
+  return { updatedAt, favorites: control.favorites, control, leagues, error: lastError, net: net.readNet() };
 }
 
 /* ---------- SSE (push p/ TV e controle) ---------- */
@@ -169,6 +171,39 @@ const server = http.createServer((req, res) => {
   if (pathname === "/api/refresh" && req.method === "POST") {
     poll().then(() => sendJSON(res, 200, snapshot()));
     return;
+  }
+
+  // estado de rede (modo setup/online) — usado pela TV e pelo portal
+  if (pathname === "/api/net") return sendJSON(res, 200, net.readNet());
+
+  // scan de redes WiFi (só no modo setup)
+  if (pathname === "/api/wifi/scan") {
+    if (net.readNet().mode !== "setup") return sendJSON(res, 403, { error: "fora do modo setup" });
+    net.scanWifi()
+      .then((list) => sendJSON(res, 200, { networks: list }))
+      .catch((e) => sendJSON(res, 500, { error: e.message }));
+    return;
+  }
+
+  // conectar o aparelho a uma rede WiFi (só no modo setup)
+  if (pathname === "/api/wifi/connect" && req.method === "POST") {
+    if (net.readNet().mode !== "setup") return sendJSON(res, 403, { error: "fora do modo setup" });
+    let body = "";
+    req.on("data", (c) => { body += c; if (body.length > 1e4) req.destroy(); });
+    req.on("end", () => {
+      let p; try { p = JSON.parse(body || "{}"); } catch { return sendJSON(res, 400, { error: "json inválido" }); }
+      net.connectWifi(p.ssid, p.psk)
+        .then(() => sendJSON(res, 200, { ok: true }))
+        .catch((e) => sendJSON(res, 400, { error: e.message }));
+    });
+    return;
+  }
+
+  // portal de configuração (celular no hotspot)
+  if (pathname === "/setup" || pathname === "/setup/") return serveFile(res, path.join(SETUP_DIR, "index.html"));
+  if (pathname.startsWith("/setup/")) {
+    const f = safeJoin(SETUP_DIR, pathname.slice("/setup/".length));
+    if (f) return serveFile(res, f);
   }
 
   // controle remoto PWA

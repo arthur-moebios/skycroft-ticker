@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070b16">
+  <title>Skycroft Ticker — Configurar WiFi</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/skycroft-logo.svg">
+  <link rel="stylesheet" href="/setup/style.css">
+</head>
+<body>
+  <header class="top">
+    <img class="logo" src="/assets/skycroft-logo.svg" alt="">
+    <div class="brand">Skycroft<b> Ticker</b><span class="sub">Configurar WiFi</span></div>
+  </header>
+
+  <main>
+    <section class="card" id="pick">
+      <div class="card-head"><h2>Escolha sua rede</h2><button class="ghost" id="rescan">Atualizar</button></div>
+      <div class="nets" id="nets"><div class="empty">Procurando redes…</div></div>
+      <button class="link" id="manual-toggle">Minha rede não aparece</button>
+      <form class="manual" id="manual" hidden>
+        <input id="manual-ssid" placeholder="Nome da rede (SSID)" autocomplete="off">
+        <button type="submit">Usar esta rede</button>
+      </form>
+    </section>
+
+    <section class="card" id="connect" hidden>
+      <div class="card-head"><h2>Conectar</h2><button class="ghost" id="back">Voltar</button></div>
+      <p class="net-name">Rede: <b id="sel-ssid">—</b></p>
+      <form id="pw-form" autocomplete="off">
+        <label class="pw" id="pw-label">Senha
+          <input id="psk" type="password" placeholder="Senha do WiFi" autocomplete="current-password">
+        </label>
+        <label class="show"><input type="checkbox" id="show-pw"> Mostrar senha</label>
+        <button type="submit" id="go">Conectar</button>
+      </form>
+      <p class="err" id="err" hidden></p>
+    </section>
+
+    <section class="card done" id="done" hidden>
+      <div class="spin" id="spin"></div>
+      <h2 id="done-title">Conectando…</h2>
+      <p id="done-msg">Aguarde — o aparelho está entrando na sua rede.</p>
+    </section>
+  </main>
+
+  <footer class="foot">O aparelho vai voltar ao placar automaticamente quando conectar.</footer>
+  <script src="/setup/app.js"></script>
+</body>
+</html>

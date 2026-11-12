@@ -1,0 +1,25 @@
+[Unit]
+Description=Skycroft Ticker — kiosk (Chromium em tela cheia)
+After=skycroft-server.service systemd-user-sessions.service getty@tty1.service
+Wants=skycroft-server.service
+Conflicts=getty@tty1.service
+
+[Service]
+User=skycroft
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+UtmpIdentifier=tty1
+UtmpMode=user
+# Abre o X e, dentro dele, a sessão do kiosk.
+ExecStartPre=/usr/bin/chvt 1
+ExecStart=/usr/bin/startx /opt/skycroft/scripts/kiosk-session.sh -- :0 vt1 -keeptty -nolisten tcp
+Environment=PORT=8099
+Restart=always
+RestartSec=3
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

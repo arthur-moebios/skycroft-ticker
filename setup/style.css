@@ -1,0 +1,79 @@
+/* ===== Skycroft Ticker — portal de configuração WiFi ===== */
+:root {
+  --bg0: #070b16; --bg1: #0b1120; --panel: #121a30; --panel2: #18223d;
+  --line: #243150; --line2: #35507f; --txt: #eaf0ff; --muted: #8ea0c4;
+  --accent: #35d07f; --accent2: #1fb6c9; --blue: #4aa3ff; --live: #ff5a5a;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; }
+body {
+  background: radial-gradient(1200px 500px at 50% -10%, #10213f 0%, transparent 60%), var(--bg0);
+  color: var(--txt); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh; padding-bottom: env(safe-area-inset-bottom);
+}
+.top {
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(16px + env(safe-area-inset-top)) 16px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.top .logo { width: 40px; height: 40px; border-radius: 11px; }
+.brand { font-weight: 800; font-size: 19px; line-height: 1.05; }
+.brand b { color: var(--accent); }
+.brand .sub { display: block; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; }
+
+main { padding: 16px; display: flex; flex-direction: column; gap: 14px; max-width: 560px; margin: 0 auto; }
+.card { background: linear-gradient(180deg, var(--panel), var(--bg1)); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.card[hidden] { display: none; }
+.card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.card-head h2 { margin: 0; font-size: 16px; font-weight: 800; }
+.ghost { margin-left: auto; appearance: none; cursor: pointer; border: 1px solid var(--line2); background: var(--panel2); color: var(--txt); font-weight: 700; font-size: 12.5px; padding: 7px 12px; border-radius: 10px; }
+
+.nets { display: flex; flex-direction: column; gap: 8px; }
+.nets .empty { color: var(--muted); font-size: 13.5px; padding: 8px 2px; }
+.net {
+  display: flex; align-items: center; gap: 12px; width: 100%; cursor: pointer; text-align: left;
+  background: var(--bg0); border: 1px solid var(--line); border-radius: 13px; padding: 13px 14px; color: var(--txt);
+}
+.net:active { transform: scale(.995); }
+.net .nm { font-weight: 700; font-size: 15px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.net .lock { color: var(--muted); font-size: 14px; }
+.net .bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
+.net .bars i { width: 3px; background: var(--line2); border-radius: 2px; }
+.net .bars i.on { background: var(--accent); }
+.net .bars i:nth-child(1){height:5px} .net .bars i:nth-child(2){height:9px} .net .bars i:nth-child(3){height:13px} .net .bars i:nth-child(4){height:16px}
+
+.link { background: none; border: 0; color: var(--blue); font-weight: 700; font-size: 13.5px; padding: 12px 2px 2px; cursor: pointer; }
+.manual { display: flex; gap: 8px; margin-top: 10px; }
+.manual[hidden] { display: none; }
+input {
+  flex: 1; min-width: 0; background: var(--bg0); border: 1px solid var(--line); color: var(--txt);
+  border-radius: 10px; padding: 12px 13px; font-size: 15px;
+}
+input::placeholder { color: var(--muted); }
+button[type=submit], #go {
+  appearance: none; cursor: pointer; border: 0; font-weight: 800; font-size: 15px;
+  padding: 13px 16px; border-radius: 11px; color: #06240f;
+  background: linear-gradient(180deg, var(--accent), var(--accent2)); box-shadow: 0 6px 18px rgba(53,208,127,.28);
+}
+.manual button { font-size: 13.5px; padding: 12px 14px; }
+
+.net-name { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+.net-name b { color: var(--txt); }
+.pw { display: block; font-size: 13px; color: var(--muted); font-weight: 600; }
+.pw input { margin-top: 7px; width: 100%; }
+.pw[hidden] { display: none; }
+.show { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); margin: 12px 2px 16px; }
+#go { width: 100%; }
+.err { color: var(--live); font-size: 13.5px; margin: 12px 0 0; }
+.err[hidden] { display: none; }
+
+.done { text-align: center; padding: 30px 20px; }
+.done[hidden] { display: none; }
+.done h2 { margin: 18px 0 8px; font-size: 20px; }
+.done p { color: var(--muted); font-size: 14px; margin: 0; }
+.done.ok .spin { display: none; }
+.spin { width: 46px; height: 46px; margin: 0 auto; border: 4px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.check { width: 56px; height: 56px; margin: 0 auto; }
+
+.foot { text-align: center; color: var(--muted); font-size: 12.5px; padding: 18px 16px calc(24px + env(safe-area-inset-bottom)); }

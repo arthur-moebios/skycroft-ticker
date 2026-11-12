@@ -1,0 +1,15 @@
+[Unit]
+Description=Skycroft Ticker — vigia de rede (hotspot de configuração)
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=simple
+# root: precisa subir/derrubar o AP via nmcli e escrever /run/skycroft
+ExecStart=/opt/skycroft/scripts/skycroft-netcheck.sh
+Environment=PORT=8099
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+[Unit]
+Description=Skycroft Ticker — servidor (ESPN + SSE + controle)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=skycroft
+WorkingDirectory=/opt/skycroft/server
+ExecStart=/usr/bin/node /opt/skycroft/server/index.js
+Environment=PORT=8099
+Environment=SKYCROFT_NET_FILE=/run/skycroft/net.json
+Environment=SKYCROFT_WIFI_HELPER=/opt/skycroft/scripts/skycroft-wifi-connect.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

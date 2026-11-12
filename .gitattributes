@@ -1,0 +1,10 @@
+# Arquivos que rodam no Linux (Orange Pi) precisam de fim de linha LF.
+# Evita que um checkout/commit no Windows grave CRLF e quebre os scripts.
+* text=auto eol=lf
+*.sh            text eol=lf
+*.service       text eol=lf
+*.sudoers       text eol=lf
+Xwrapper.config text eol=lf
+*.js            text eol=lf
+*.json          text eol=lf
+*.svg           text eol=lf

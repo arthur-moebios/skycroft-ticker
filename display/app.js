@@ -12,6 +12,7 @@ let CONTROL = {
   enabledLeagues: ["NFL", "NBA"],
 };
 let LIVE = false; // true quando conectado ao servidor do dispositivo
+let NET = { mode: "online" }; // estado de rede (setup/online)
 
 const LEAGUE_LOGO = {
   NFL: "https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png",
@@ -264,7 +265,37 @@ function applySnapshot(snap) {
   if (!snap) return;
   DATA = { updatedAt: snap.updatedAt, favorites: snap.favorites, leagues: snap.leagues || [] };
   if (snap.control) CONTROL = { ...CONTROL, ...snap.control };
+  if (snap.net) NET = snap.net;
+  renderNet();
   renderAll();
+}
+
+/* ---- Tela de configuração (modo setup: aparelho sem WiFi) ---- */
+let lastQrKey = "";
+function renderNet() {
+  const screen = document.getElementById("setup-screen");
+  if (!screen) return;
+  if (!NET || NET.mode !== "setup") { screen.hidden = true; lastQrKey = ""; return; }
+  screen.hidden = false;
+  const apSsid = NET.apSsid || "Skycroft-Setup";
+  const apPass = NET.apPass || "";
+  document.getElementById("setup-ssid").textContent = apSsid;
+  document.getElementById("setup-url").textContent = NET.setupUrl || "http://10.42.0.1:8099/setup";
+  // Payload WiFi padrão (iOS/Android entram na rede ao escanear)
+  const payload = apPass
+    ? `WIFI:T:WPA;S:${apSsid};P:${apPass};;`
+    : `WIFI:T:nopass;S:${apSsid};;`;
+  if (payload === lastQrKey) return; // evita recriar o QR a cada broadcast
+  lastQrKey = payload;
+  const box = document.getElementById("setup-qr");
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(payload);
+    qr.make();
+    box.innerHTML = qr.createSvgTag({ cellSize: 8, margin: 0, scalable: true });
+  } catch (e) {
+    box.textContent = apSsid;
+  }
 }
 function connectLive() {
   return fetch("/api/state", { cache: "no-store" })

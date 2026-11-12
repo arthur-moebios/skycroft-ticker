@@ -27,7 +27,7 @@ No Orange Pi rodam 3 componentes:
 - **Fixo**: o controle remoto fixa um jogo específico no exibidor principal.
 - **Favoritos** (★): Patriots (NE) e Celtics (BOS) por padrão; editáveis pelo controle.
 
-## Como rodar (PC ou Pi)
+## Como rodar (PC, para desenvolver)
 
 ```
 cd server
@@ -39,6 +39,22 @@ node index.js          # Node >= 18, sem npm install
 
 No celular, abra `http://<ip-do-aparelho>:8099/remote` e "Adicionar à tela de início"
 para instalar o PWA.
+
+## Instalar no aparelho (Orange Pi)
+
+Num Armbian trixie Minimal recém-instalado:
+
+```
+git clone https://github.com/arthur-moebios/skycroft-ticker.git
+cd skycroft-ticker
+sudo ./scripts/install.sh
+sudo reboot
+```
+
+O `install.sh` configura: servidor + **kiosk Chromium** (autostart via systemd),
+**onboarding WiFi** (hotspot + QR na TV + portal no celular), **Tailscale** (com
+Tailscale SSH) e **SSH** habilitado. Passo a passo e geração do `.img` em
+[`BUILD-IMAGE.md`](BUILD-IMAGE.md).
 
 ## API do servidor
 
@@ -53,27 +69,41 @@ para instalar o PWA.
 
 ## Plano em fases
 
-- [ ] **Fase 1** — Chromium kiosk + autostart (systemd) no Pi.
-- [ ] **Fase 2** — Onboarding WiFi (hostapd/NetworkManager + QR + captive portal).
+- [x] **Fase 1** — Chromium kiosk + autostart (systemd) no Pi.
+- [x] **Fase 2** — Onboarding WiFi (NetworkManager AP + QR na TV + portal).
 - [x] **Fase 3** — Camada de dados ESPN (coleta + cache + push ao vivo via SSE).
 - [x] **Fase 4** — Visual do ticker (scoreboard + faixa rolando, logos reais).
 - [x] **Fase 5** — Controle remoto PWA (mostrador fixo, lista de jogos, favoritos, ligas).
-- [ ] **Fase 6** — Imagem `.img` pronta pra flashear.
+- [x] **Fase 6** — `install.sh` (+ Tailscale/SSH) e guia de geração do `.img`.
 
 ## Estrutura
 
 ```
 sports-ticker/
-  display/      TV view (o que aparece no HDMI)
+  display/      TV view (HDMI) — inclui a tela de setup com QR
     index.html  app.js  style.css
-    mock-data.js   fallback offline (preview sem servidor)
-    assets/skycroft-logo.svg
-  server/       servidor Node: estáticos + coleta ESPN + SSE + controle
-    index.js  espn.js  package.json
+    mock-data.js            fallback offline (preview sem servidor)
+    assets/skycroft-logo.svg  assets/qrcode.js (MIT, offline)
+  server/       servidor Node (zero deps): ESPN + SSE + controle + rede
+    index.js  espn.js  net.js  package.json
   remote/       controle remoto PWA (celular)
     index.html  app.js  style.css  manifest.webmanifest  sw.js
-  scripts/      (Fase 1-2) instalação no Pi: kiosk, autostart, onboarding WiFi
+  setup/        portal de configuração WiFi (celular no hotspot)
+    index.html  app.js  style.css
+  scripts/      provisionamento do Pi
+    install.sh                 instalador (pacotes, kiosk, WiFi, Tailscale, SSH)
+    skycroft-netcheck.sh       vigia de rede (sobe/derruba o hotspot)
+    skycroft-wifi-connect.sh   conecta o aparelho ao WiFi (via sudo)
+    kiosk-session.sh           sessão Chromium fullscreen
+    skycroft-tailscale-up.sh   Tailscale + SSH
+    systemd/                   units + Xwrapper + sudoers
+  BUILD-IMAGE.md  como gerar o .img flasheável
 ```
+
+## Acesso remoto
+
+- **Tailscale** (com Tailscale SSH) + **SSH** vêm habilitados pelo `install.sh`.
+- `ssh skycroft@<ip-da-lan>` ou, pela Tailscale, `ssh skycroft@skycroft-ticker`.
 
 ## Hardware alvo
 

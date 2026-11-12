@@ -55,9 +55,29 @@
       <div class="ticker-label">⚽ PLACARES</div>
       <div class="ticker-track"></div>
     </footer>
+
+    <!-- Tela de configuração (modo setup: sem WiFi) -->
+    <section id="setup-screen" hidden>
+      <div class="setup-card">
+        <div class="setup-brand">
+          <img src="assets/skycroft-logo.svg" alt="Skycroft">
+          <div><b>SKYCROFT</b> TICKER</div>
+        </div>
+        <h1>Vamos conectar ao seu WiFi</h1>
+        <ol class="setup-steps">
+          <li><b>1.</b> No celular, aponte a câmera para o QR e entre na rede <span class="pill" id="setup-ssid">Skycroft-Setup</span></li>
+          <li><b>2.</b> A página de configuração abre sozinha — escolha seu WiFi e digite a senha.</li>
+        </ol>
+        <div class="setup-qr-wrap">
+          <div id="setup-qr" class="setup-qr"></div>
+        </div>
+        <div class="setup-url">ou abra no navegador: <b id="setup-url">http://10.42.0.1:8099/setup</b></div>
+      </div>
+    </section>
   </div>
 
   <script src="mock-data.js"></script>
+  <script src="assets/qrcode.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
