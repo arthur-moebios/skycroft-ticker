@@ -10,8 +10,15 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { fetchAll, hasLive } = require("./espn");
+const { fetchLeagues, hasLive, catalogMeta, BY_ID } = require("./espn");
 const net = require("./net");
+
+// Presets de tema e opções de UI aceitas (validação do /api/control).
+const THEME_IDS = ["midnight", "gridiron", "hardwood", "arena", "broadcast", "stars"];
+const DENSITIES = ["compact", "comfortable", "spacious"];
+const FONTS = ["system", "condensed", "sport"];
+const DETAILS = ["score", "rich"];
+const SIDES = ["left", "right"];
 
 const PORT = process.env.PORT || 8099;
 const ROOT = path.join(__dirname, "..");
@@ -24,11 +31,23 @@ const LIVE_MS = 30_000;   // há jogo ao vivo
 const IDLE_MS = 120_000;  // nenhum jogo ao vivo
 
 /* ---------- estado ---------- */
+const defaultUi = {
+  theme: "midnight",        // preset de cor/modo (ver THEME_IDS)
+  density: "comfortable",   // compact | comfortable | spacious (tamanho dos cards)
+  font: "system",           // system | condensed | sport
+  fontScale: 1,             // 0.8 .. 1.4 (escala global do texto)
+  detail: "rich",           // score (só placar) | rich (mais detalhes)
+  listCount: 4,             // quantos jogos na lista lateral (0..6)
+  showTicker: true,         // mostra a faixa rolante
+  showClock: true,          // mostra o relógio
+  sidePos: "right",         // lado da lista: right | left
+};
 const defaultControl = {
   favorites: ["NE", "BOS"], // Patriots + Celtics
   mode: "auto",             // "auto" (ao vivo tem prioridade) | "fixed" (evento fixado)
   fixedEventId: null,
   enabledLeagues: ["NFL", "NBA"],
+  ui: { ...defaultUi },
 };
 
 let control = loadControl();
@@ -39,9 +58,9 @@ let lastError = null;
 function loadControl() {
   try {
     const raw = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
-    return { ...defaultControl, ...raw };
+    return { ...defaultControl, ...raw, ui: { ...defaultUi, ...(raw.ui || {}) } };
   } catch {
-    return { ...defaultControl };
+    return { ...defaultControl, ui: { ...defaultUi } };
   }
 }
 function saveControl() {
@@ -53,7 +72,7 @@ function saveControl() {
 }
 
 function snapshot() {
-  return { updatedAt, favorites: control.favorites, control, leagues, error: lastError, net: net.readNet() };
+  return { updatedAt, favorites: control.favorites, control, leagues, catalog: catalogMeta(), error: lastError, net: net.readNet() };
 }
 
 /* ---------- SSE (push p/ TV e controle) ---------- */
@@ -69,7 +88,7 @@ function broadcast() {
 let pollTimer = null;
 async function poll() {
   try {
-    leagues = await fetchAll();
+    leagues = await fetchLeagues(control.enabledLeagues);
     updatedAt = Date.now();
     lastError = null;
   } catch (e) {
@@ -121,16 +140,34 @@ function applyControl(patch) {
       .filter(Boolean)
       .slice(0, 12);
   }
+  let leaguesChanged = false;
   if (Array.isArray(patch.enabledLeagues)) {
-    const valid = new Set(["NFL", "NBA"]);
-    const next = patch.enabledLeagues.map((s) => String(s).toUpperCase()).filter((s) => valid.has(s));
-    control.enabledLeagues = next.length ? next : ["NFL", "NBA"];
+    const next = patch.enabledLeagues.map((s) => String(s).toUpperCase()).filter((s) => BY_ID[s]);
+    const value = next.length ? [...new Set(next)] : ["NFL", "NBA"];
+    if (value.join(",") !== (control.enabledLeagues || []).join(",")) leaguesChanged = true;
+    control.enabledLeagues = value;
+  }
+  // Customização visual (tema, fonte, densidade, detalhe, etc.)
+  if (patch.ui && typeof patch.ui === "object") {
+    const u = patch.ui;
+    const cur = control.ui || { ...defaultUi };
+    if (THEME_IDS.includes(u.theme)) cur.theme = u.theme;
+    if (DENSITIES.includes(u.density)) cur.density = u.density;
+    if (FONTS.includes(u.font)) cur.font = u.font;
+    if (DETAILS.includes(u.detail)) cur.detail = u.detail;
+    if (SIDES.includes(u.sidePos)) cur.sidePos = u.sidePos;
+    if (typeof u.fontScale === "number") cur.fontScale = Math.min(1.4, Math.max(0.8, u.fontScale));
+    if (typeof u.listCount === "number") cur.listCount = Math.min(6, Math.max(0, Math.round(u.listCount)));
+    if (typeof u.showTicker === "boolean") cur.showTicker = u.showTicker;
+    if (typeof u.showClock === "boolean") cur.showClock = u.showClock;
+    control.ui = cur;
   }
   // fixar um evento implica modo fixo; limpar volta pro automático
   if (patch.fixedEventId) control.mode = "fixed";
   if (patch.mode === "auto") control.fixedEventId = null;
   saveControl();
   broadcast();
+  if (leaguesChanged) poll(); // recarrega a liga recém-ligada já já
 }
 
 /* ---------- servidor ---------- */

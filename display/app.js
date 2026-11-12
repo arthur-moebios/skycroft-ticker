@@ -10,6 +10,10 @@ let CONTROL = {
   mode: "auto",
   fixedEventId: null,
   enabledLeagues: ["NFL", "NBA"],
+  ui: {
+    theme: "midnight", density: "comfortable", font: "system", fontScale: 1,
+    detail: "rich", listCount: 4, showTicker: true, showClock: true, sidePos: "right",
+  },
 };
 let LIVE = false; // true quando conectado ao servidor do dispositivo
 let NET = { mode: "online" }; // estado de rede (setup/online)
@@ -17,6 +21,8 @@ let NET = { mode: "online" }; // estado de rede (setup/online)
 const LEAGUE_LOGO = {
   NFL: "https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png",
   NBA: "https://a.espncdn.com/i/teamlogos/leagues/500/nba.png",
+  MLB: "https://a.espncdn.com/i/teamlogos/leagues/500/mlb.png",
+  NHL: "https://a.espncdn.com/i/teamlogos/leagues/500/nhl.png",
 };
 function leagueLogo(abbrev) {
   const u = LEAGUE_LOGO[abbrev];
@@ -177,7 +183,8 @@ window.logoFail = function (img, ab, color) {
 function renderSide() {
   const pool = featPool();
   const featured = pool[featIdx % pool.length];
-  const rest = prioritized().filter((e) => !featured || e.id !== featured.id).slice(0, 4);
+  const n = CONTROL.ui && CONTROL.ui.listCount != null ? CONTROL.ui.listCount : 4;
+  const rest = prioritized().filter((e) => !featured || e.id !== featured.id).slice(0, n);
   document.querySelector(".side-title").textContent =
     liveEvents().length ? "Ao vivo & a seguir" : "Próximos jogos";
   const list = document.querySelector(".mini-list");
@@ -233,7 +240,23 @@ function tkLogo(t) {
     : `<span class="tk-abbr-color" style="background:${t.color}"></span>`;
 }
 
+/* ---- Aplica a customização visual (tema, fonte, densidade, escala...) ---- */
+function applyUi() {
+  const u = CONTROL.ui || {};
+  const st = document.getElementById("stage");
+  if (!st) return;
+  st.dataset.theme = u.theme || "midnight";
+  st.dataset.density = u.density || "comfortable";
+  st.dataset.font = u.font || "system";
+  st.dataset.detail = u.detail || "rich";
+  st.dataset.side = u.sidePos || "right";
+  st.dataset.ticker = u.showTicker === false ? "off" : "on";
+  st.dataset.clock = u.showClock === false ? "off" : "on";
+  st.style.setProperty("--ui-scale", String(u.fontScale || 1));
+}
+
 function renderAll() {
+  applyUi();
   renderFeatured();
   renderSide();
   renderTicker();

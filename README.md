@@ -27,6 +27,21 @@ No Orange Pi rodam 3 componentes:
 - **Fixo**: o controle remoto fixa um jogo específico no exibidor principal.
 - **Favoritos** (★): Patriots (NE) e Celtics (BOS) por padrão; editáveis pelo controle.
 
+### Customização pelo controle (opcional — já vem pronto)
+
+O PWA tem uma aba **Aparência** que reconfigura a TV ao vivo (via SSE), sem mexer em
+nada no aparelho:
+
+- **Temas**: Meia-noite (padrão), Gridiron, Hardwood, Arena (âmbar retrô), Broadcast
+  (claro) e Stars — inspirados em placares clássicos e dashboards.
+- **Fonte**: Sistema, Condensada (Oswald) ou Esportiva (Rajdhani) — embarcadas, offline.
+- **Densidade** dos cards, **tamanho do texto**, **nível de detalhe** (completo / só placar),
+  **quantos jogos** na lista, mostrar/ocultar **faixa** e **relógio**, lado da lista.
+- **Ligas**: NFL, NBA, MLB, NHL, Premier League, Champions e Brasileirão (liga nova
+  entra só adicionando uma linha em `server/espn.js`).
+
+Tudo é opcional: de fábrica o ticker já funciona sem o usuário tocar em nada.
+
 ## Como rodar (PC, para desenvolver)
 
 ```

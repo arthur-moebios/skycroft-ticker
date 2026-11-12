@@ -1,6 +1,6 @@
 /* Service worker do controle Skycroft — cache leve do app shell.
  * Dados (api/*) nunca são cacheados: sempre rede. */
-const CACHE = "skycroft-remote-v1";
+const CACHE = "skycroft-remote-v2";
 const SHELL = ["/remote", "/remote/index.html", "/remote/app.js", "/remote/style.css", "/remote/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

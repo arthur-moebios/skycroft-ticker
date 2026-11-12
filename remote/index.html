@@ -31,13 +31,50 @@
       <p class="note" id="mode-note">No automático, jogos ao vivo têm prioridade no exibidor.</p>
     </section>
 
+    <!-- Aparência / customização visual -->
+    <section class="card">
+      <div class="card-head"><h2>Aparência</h2><span class="hint">tema & layout da TV</span></div>
+
+      <label class="field-label">Tema</label>
+      <div class="themes" id="themes"></div>
+
+      <label class="field-label">Fonte</label>
+      <div class="seg three" id="font-seg">
+        <button data-font="system" class="on">Sistema</button>
+        <button data-font="condensed">Condensada</button>
+        <button data-font="sport">Esportiva</button>
+      </div>
+
+      <label class="field-label">Densidade dos cards</label>
+      <div class="seg three" id="density-seg">
+        <button data-density="compact">Compacto</button>
+        <button data-density="comfortable" class="on">Padrão</button>
+        <button data-density="spacious">Amplo</button>
+      </div>
+
+      <label class="field-label">Detalhe</label>
+      <div class="seg" id="detail-seg">
+        <button data-detail="rich" class="on">Completo</button>
+        <button data-detail="score">Só placar</button>
+      </div>
+
+      <label class="field-label">Tamanho do texto <span class="val" id="scale-val">100%</span></label>
+      <input type="range" id="scale" min="0.8" max="1.4" step="0.05" value="1">
+
+      <label class="field-label">Jogos na lista <span class="val" id="count-val">4</span></label>
+      <input type="range" id="count" min="0" max="6" step="1" value="4">
+
+      <div class="switches">
+        <label class="switch"><span>Faixa rolante</span><input type="checkbox" id="sw-ticker" checked><i></i></label>
+        <label class="switch"><span>Relógio</span><input type="checkbox" id="sw-clock" checked><i></i></label>
+        <label class="switch"><span>Lista à esquerda</span><input type="checkbox" id="sw-side"><i></i></label>
+      </div>
+    </section>
+
     <!-- Ligas -->
     <section class="card">
-      <div class="card-head"><h2>Ligas</h2></div>
-      <div class="chips" id="league-chips">
-        <button data-lg="NFL" class="chip on"><img src="https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png" alt="">NFL</button>
-        <button data-lg="NBA" class="chip on"><img src="https://a.espncdn.com/i/teamlogos/leagues/500/nba.png" alt="">NBA</button>
-      </div>
+      <div class="card-head"><h2>Ligas</h2><span class="hint">o que entra no placar</span></div>
+      <div class="chips" id="league-chips"></div>
     </section>
 
     <!-- Favoritos -->

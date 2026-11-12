@@ -1,12 +1,20 @@
-/* ===== Skycroft Ticker — coletor ESPN (NFL + NBA) =====
- * Reaproveita exatamente os endpoints públicos da ESPN usados no app Laravel.
+/* ===== Skycroft Ticker — coletor ESPN =====
+ * Reaproveita os endpoints públicos da ESPN (mesmos do app Laravel).
+ * Catálogo de ligas extensível — basta adicionar uma linha em CATALOG.
  * Sem dependências externas: usa o fetch nativo do Node (>=18).
  */
 
-const LEAGUES = [
-  { id: "nfl", abbrev: "NFL", name: "NFL", path: "football/nfl" },
-  { id: "nba", abbrev: "NBA", name: "NBA", path: "basketball/nba" },
+// id = chave interna/abbrev; path = caminho ESPN (esporte/liga).
+const CATALOG = [
+  { id: "NFL", name: "NFL", path: "football/nfl", sport: "football" },
+  { id: "NBA", name: "NBA", path: "basketball/nba", sport: "basketball" },
+  { id: "MLB", name: "MLB", path: "baseball/mlb", sport: "baseball" },
+  { id: "NHL", name: "NHL", path: "hockey/nhl", sport: "hockey" },
+  { id: "PL", name: "Premier League", path: "soccer/eng.1", sport: "soccer" },
+  { id: "UCL", name: "Champions League", path: "soccer/uefa.champions", sport: "soccer" },
+  { id: "BRA", name: "Brasileirão", path: "soccer/bra.1", sport: "soccer" },
 ];
+const BY_ID = Object.fromEntries(CATALOG.map((l) => [l.id, l]));
 
 const stateMap = { pre: "pre", in: "in", post: "post" };
 
@@ -39,26 +47,32 @@ async function fetchLeague(lg) {
       home: normTeam(home),
     };
   });
-  return { id: lg.id, abbrev: lg.abbrev, name: lg.name, path: lg.path, events };
+  return { id: lg.id, abbrev: lg.id, name: lg.name, path: lg.path, sport: lg.sport, events };
 }
 
-// Retorna [{id,abbrev,name,path,events}], uma entrada por liga (vazia em caso de erro).
-async function fetchAll() {
+// Busca só as ligas pedidas (por id). Entradas desconhecidas são ignoradas.
+// Mantém a ordem de `ids`. Falha de uma liga não derruba as outras.
+async function fetchLeagues(ids) {
+  const wanted = (ids && ids.length ? ids : ["NFL", "NBA"]).map((s) => BY_ID[s]).filter(Boolean);
   const out = [];
-  for (const lg of LEAGUES) {
+  for (const lg of wanted) {
     try {
       out.push(await fetchLeague(lg));
     } catch (e) {
       console.error(`[espn] ${lg.id} falhou: ${e.message}`);
-      out.push({ id: lg.id, abbrev: lg.abbrev, name: lg.name, path: lg.path, events: [] });
+      out.push({ id: lg.id, abbrev: lg.id, name: lg.name, path: lg.path, sport: lg.sport, events: [] });
     }
   }
   return out;
 }
 
-// true se qualquer jogo está ao vivo (define cadência de atualização)
 function hasLive(leagues) {
   return leagues.some((lg) => lg.events.some((e) => e.state === "in"));
 }
 
-module.exports = { LEAGUES, fetchAll, hasLive };
+// Metadados pro controle remoto montar a lista de ligas.
+function catalogMeta() {
+  return CATALOG.map((l) => ({ id: l.id, name: l.name, sport: l.sport }));
+}
+
+module.exports = { CATALOG, BY_ID, fetchLeagues, hasLive, catalogMeta };
