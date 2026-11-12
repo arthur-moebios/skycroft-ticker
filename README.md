@@ -1,8 +1,9 @@
-# Sports Ticker — "Chromecast esportivo" (Glance Zone clone)
+# Skycroft Ticker — "Chromecast esportivo"
 
 Aparelho baseado em **Orange Pi Zero 2W + Armbian (Debian 13 trixie)** que se pluga no
 HDMI, é configurado pelo celular via QR code e exibe um ticker/scoreboard esportivo ao
-vivo, reutilizando a API da ESPN.
+vivo (NFL + NBA), reutilizando a API pública da ESPN. Controlado por um **PWA de controle
+remoto** no celular.
 
 ## Arquitetura
 
@@ -11,36 +12,66 @@ Tudo é **web** (fácil de estilizar, responsivo, configurável pelo celular sem
 No Orange Pi rodam 3 componentes:
 
 1. **Chromium em modo kiosk** → renderiza em tela cheia a página de `display/` (a "TV view").
-2. **Servidor Node.js** (`server/`) que:
-   - serve o `display/` (TV) e o `config/` (painel do celular);
-   - faz proxy + cache da **API da ESPN** (chave fica no aparelho, sem CORS);
-   - guarda a configuração local (ligas, times, layout);
-   - empurra placares ao vivo via **WebSocket** → updates em tempo real (responsivo).
+2. **Servidor Node.js** (`server/`, **zero dependências**) que:
+   - serve o `display/` (TV) em `/` e o controle remoto `remote/` (PWA) em `/remote`;
+   - coleta + faz cache da **API da ESPN** (NFL/NBA), com cadência **30s ao vivo / 120s ocioso**;
+   - guarda o estado de controle (favoritos, mostrador fixo, ligas) em `server/control-state.json`;
+   - empurra atualizações ao vivo via **SSE** (`/api/stream`) → TV e controle em tempo real.
 3. **Onboarding tipo Chromecast** (`scripts/`): no 1º boot sem WiFi, sobe um hotspot,
    mostra um **QR na TV**, o celular entra no captive portal e cadastra o WiFi de casa.
 
+### Comportamento do mostrador principal
+
+- **Automático** (padrão): **jogos ao vivo têm prioridade** (favoritos ao vivo → outros ao
+  vivo → próximo jogo dos favoritos → geral).
+- **Fixo**: o controle remoto fixa um jogo específico no exibidor principal.
+- **Favoritos** (★): Patriots (NE) e Celtics (BOS) por padrão; editáveis pelo controle.
+
+## Como rodar (PC ou Pi)
+
+```
+cd server
+node index.js          # Node >= 18, sem npm install
+```
+
+- TV / display:   http://localhost:8099/
+- Controle (PWA): http://localhost:8099/remote
+
+No celular, abra `http://<ip-do-aparelho>:8099/remote` e "Adicionar à tela de início"
+para instalar o PWA.
+
+## API do servidor
+
+| Rota             | Método | O que faz                                            |
+|------------------|--------|------------------------------------------------------|
+| `/`              | GET    | Display (TV view)                                    |
+| `/remote`        | GET    | Controle remoto (PWA)                                |
+| `/api/state`     | GET    | Snapshot atual (dados ESPN + estado de controle)     |
+| `/api/stream`    | GET    | SSE: empurra o snapshot a cada atualização           |
+| `/api/control`   | POST   | Patch de controle `{mode, fixedEventId, favorites, enabledLeagues}` |
+| `/api/refresh`   | POST   | Força recoleta imediata da ESPN                      |
+
 ## Plano em fases
 
-- [ ] **Fase 1** — Servidor + Chromium kiosk + autostart (systemd). "Olá" na TV.
+- [ ] **Fase 1** — Chromium kiosk + autostart (systemd) no Pi.
 - [ ] **Fase 2** — Onboarding WiFi (hostapd/NetworkManager + QR + captive portal).
-- [x] **Fase 3** — (em andamento) Camada de dados ESPN (proxy + cache + live WS).
-- [x] **Fase 4** — (em andamento) Visual do ticker (scoreboard + faixa rolando).
-- [ ] **Fase 5** — Painel do celular (escolher ligas/times/layout).
-
-> Fases 3–5 dão pra desenvolver/visualizar no PC. Fases 1–2 dependem do hardware e viram
-> scripts de instalação rodados no Pi.
+- [x] **Fase 3** — Camada de dados ESPN (coleta + cache + push ao vivo via SSE).
+- [x] **Fase 4** — Visual do ticker (scoreboard + faixa rolando, logos reais).
+- [x] **Fase 5** — Controle remoto PWA (mostrador fixo, lista de jogos, favoritos, ligas).
+- [ ] **Fase 6** — Imagem `.img` pronta pra flashear.
 
 ## Estrutura
 
 ```
 sports-ticker/
   display/      TV view (o que aparece no HDMI)
-    index.html
-    style.css
-    app.js
-    mock-data.js   dados de exemplo no formato ESPN (trocados pela API real na Fase 3)
-  server/       (Fase 1+) servidor Node: estáticos + proxy ESPN + WebSocket
-  config/       (Fase 5) painel de controle do celular
+    index.html  app.js  style.css
+    mock-data.js   fallback offline (preview sem servidor)
+    assets/skycroft-logo.svg
+  server/       servidor Node: estáticos + coleta ESPN + SSE + controle
+    index.js  espn.js  package.json
+  remote/       controle remoto PWA (celular)
+    index.html  app.js  style.css  manifest.webmanifest  sw.js
   scripts/      (Fase 1-2) instalação no Pi: kiosk, autostart, onboarding WiFi
 ```
 

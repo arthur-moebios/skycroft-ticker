@@ -1,0 +1,13 @@
+{
+  "name": "skycroft-ticker-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor do dispositivo Skycroft Ticker — coleta ESPN (NFL/NBA), push ao vivo via SSE e controle remoto PWA.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

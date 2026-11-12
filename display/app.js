@@ -1,4 +1,17 @@
-/* ===== Skycroft Ticker — TV view (lógica) ===== */
+/* ===== Skycroft Ticker — TV view (lógica) =====
+ * Modo AO VIVO: conecta no servidor do dispositivo (/api/state + SSE /api/stream)
+ *   e obedece o controle remoto (favoritos, mostrador fixo, ligas).
+ * Modo STANDALONE: sem servidor (preview por arquivo), usa window.MOCK_DATA e
+ *   simula placares. */
+
+let DATA = window.MOCK_DATA || { updatedAt: 0, favorites: ["NE", "BOS"], leagues: [] };
+let CONTROL = {
+  favorites: DATA.favorites || ["NE", "BOS"],
+  mode: "auto",
+  fixedEventId: null,
+  enabledLeagues: ["NFL", "NBA"],
+};
+let LIVE = false; // true quando conectado ao servidor do dispositivo
 
 const LEAGUE_LOGO = {
   NFL: "https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png",
@@ -9,14 +22,18 @@ function leagueLogo(abbrev) {
   return u ? `<img class="llogo" src="${u}" alt="${abbrev}" onerror="this.remove()">` : "";
 }
 
-const FAVS = new Set(window.MOCK_DATA.favorites || []);
-const isFavTeam = (abbr) => FAVS.has(abbr);
+function favSet() {
+  return new Set((CONTROL.favorites && CONTROL.favorites.length ? CONTROL.favorites : DATA.favorites) || []);
+}
+const isFavTeam = (abbr) => favSet().has(abbr);
 const isFavEvent = (e) => isFavTeam(e.home.abbr) || isFavTeam(e.away.abbr);
 
-// Achata os eventos com a info da liga junto
+// Achata os eventos com a info da liga, respeitando as ligas habilitadas no controle.
 function allEvents() {
+  const enabled = new Set(CONTROL.enabledLeagues || ["NFL", "NBA"]);
   const out = [];
-  for (const lg of window.MOCK_DATA.leagues) {
+  for (const lg of DATA.leagues || []) {
+    if (!enabled.has(lg.abbrev)) continue;
     for (const ev of lg.events) out.push({ ...ev, league: lg.abbrev, leagueName: lg.name });
   }
   return out;
@@ -75,7 +92,7 @@ function formatStart(iso) {
 function favGames() {
   const evs = allEvents();
   const out = [];
-  for (const ab of window.MOCK_DATA.favorites || []) {
+  for (const ab of (CONTROL.favorites && CONTROL.favorites.length ? CONTROL.favorites : DATA.favorites) || []) {
     const mine = evs.filter((e) => e.home.abbr === ab || e.away.abbr === ab);
     if (!mine.length) continue;
     const live = mine.find((e) => e.state === "in");
@@ -89,9 +106,16 @@ function favGames() {
   }
   return out;
 }
-// Exibidor principal: AO VIVO tem prioridade (favoritos ao vivo > outros ao vivo),
-// depois o próximo jogo dos favoritos. Sem nada disso, cai no geral priorizado.
+
+// Exibidor principal:
+//  - Se o controle fixou um evento (mode=fixed), ele manda.
+//  - Senão: AO VIVO tem prioridade (favoritos ao vivo > outros ao vivo),
+//    depois o próximo jogo dos favoritos; por fim o geral priorizado.
 function featPool() {
+  if (CONTROL.mode === "fixed" && CONTROL.fixedEventId) {
+    const pinned = allEvents().find((e) => e.id === CONTROL.fixedEventId);
+    if (pinned) return [pinned];
+  }
   const evs = allEvents();
   const favLive = evs.filter((e) => e.state === "in" && isFavEvent(e));
   const otherLive = evs.filter((e) => e.state === "in" && !isFavEvent(e));
@@ -105,10 +129,11 @@ function featPool() {
 }
 function renderFeatured() {
   const pool = featPool();
-  if (!pool.length) return;
+  const el = document.querySelector(".featured");
+  if (!pool.length) { el.classList.add("empty"); return; }
+  el.classList.remove("empty");
   featIdx = featIdx % pool.length;
   const ev = pool[featIdx];
-  const el = document.querySelector(".featured");
   el.querySelector(".league-badge").innerHTML = leagueLogo(ev.league) + `<span>${ev.leagueName}</span>`;
   const pill = el.querySelector(".status-pill");
   pill.className = "status-pill " + ev.state;
@@ -207,8 +232,15 @@ function tkLogo(t) {
     : `<span class="tk-abbr-color" style="background:${t.color}"></span>`;
 }
 
-/* ---- Simula updates ao vivo (só quando há jogo ao vivo) ---- */
+function renderAll() {
+  renderFeatured();
+  renderSide();
+  renderTicker();
+}
+
+/* ---- Simula updates ao vivo (SÓ no modo standalone, sem servidor) ---- */
 function simulateLive() {
+  if (LIVE) return;
   const live = liveEvents();
   if (!live.length) return;
   const ev = live[Math.floor(Math.random() * live.length)];
@@ -227,15 +259,42 @@ function simulateLive() {
   renderTicker();
 }
 
+/* ---- Conexão ao vivo com o servidor do dispositivo ---- */
+function applySnapshot(snap) {
+  if (!snap) return;
+  DATA = { updatedAt: snap.updatedAt, favorites: snap.favorites, leagues: snap.leagues || [] };
+  if (snap.control) CONTROL = { ...CONTROL, ...snap.control };
+  renderAll();
+}
+function connectLive() {
+  return fetch("/api/state", { cache: "no-store" })
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error("sem servidor"))))
+    .then((snap) => {
+      LIVE = true;
+      applySnapshot(snap);
+      const es = new EventSource("/api/stream");
+      es.addEventListener("state", (ev) => {
+        try { applySnapshot(JSON.parse(ev.data)); } catch {}
+      });
+      es.onerror = () => { /* o próprio EventSource reconecta */ };
+      return true;
+    })
+    .catch(() => false);
+}
+
 /* ---- Boot ---- */
-function boot() {
+async function boot() {
   scaleStage();
   updateClock();
-  renderFeatured();
-  renderSide();
-  renderTicker();
+  renderAll();
   setInterval(updateClock, 1000);
+  // alterna o card em destaque; no modo fixo o pool tem 1 item, então não troca.
   setInterval(() => { featIdx++; renderFeatured(); renderSide(); }, 8000);
-  setInterval(simulateLive, 3500);
+
+  const ok = await connectLive();
+  if (!ok) {
+    // standalone: anima placares localmente p/ a demo
+    setInterval(simulateLive, 3500);
+  }
 }
 document.addEventListener("DOMContentLoaded", boot);

@@ -1,0 +1,14 @@
+{
+  "name": "Skycroft Ticker — Controle",
+  "short_name": "Skycroft",
+  "description": "Controle remoto do Skycroft Ticker: mostrador principal, ligas e times favoritos.",
+  "start_url": "/remote",
+  "scope": "/remote",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070b16",
+  "theme_color": "#070b16",
+  "icons": [
+    { "src": "/assets/skycroft-logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070b16">
+  <title>Skycroft Ticker — Controle</title>
+  <link rel="manifest" href="/remote/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/assets/skycroft-logo.svg">
+  <link rel="apple-touch-icon" href="/assets/skycroft-logo.svg">
+  <link rel="stylesheet" href="/remote/style.css">
+</head>
+<body>
+  <header class="top">
+    <img class="logo" src="/assets/skycroft-logo.svg" alt="">
+    <div class="brand">Skycroft<b> Ticker</b><span class="sub">Controle remoto</span></div>
+    <div class="conn" id="conn"><span class="dot"></span><span id="conn-text">conectando…</span></div>
+  </header>
+
+  <main>
+    <!-- Mostrador principal -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Mostrador principal</h2>
+        <span class="hint" id="mode-hint">—</span>
+      </div>
+      <div class="seg" id="mode-seg">
+        <button data-mode="auto" class="on">Automático</button>
+        <button data-mode="fixed">Fixo</button>
+      </div>
+      <p class="note" id="mode-note">No automático, jogos ao vivo têm prioridade no exibidor.</p>
+    </section>
+
+    <!-- Ligas -->
+    <section class="card">
+      <div class="card-head"><h2>Ligas</h2></div>
+      <div class="chips" id="league-chips">
+        <button data-lg="NFL" class="chip on"><img src="https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png" alt="">NFL</button>
+        <button data-lg="NBA" class="chip on"><img src="https://a.espncdn.com/i/teamlogos/leagues/500/nba.png" alt="">NBA</button>
+      </div>
+    </section>
+
+    <!-- Favoritos -->
+    <section class="card">
+      <div class="card-head"><h2>Times favoritos</h2><span class="hint">★ destaque fixo</span></div>
+      <div class="favs" id="favs"></div>
+      <form class="add" id="fav-form" autocomplete="off">
+        <input id="fav-input" maxlength="4" placeholder="Sigla (ex.: NE, BOS, DAL)" inputmode="text">
+        <button type="submit">Adicionar</button>
+      </form>
+    </section>
+
+    <!-- Jogos -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Jogos de hoje</h2>
+        <button class="ghost" id="refresh">Atualizar</button>
+      </div>
+      <p class="note">Toque num jogo para fixá-lo no mostrador principal.</p>
+      <div class="games" id="games"><div class="empty">Carregando…</div></div>
+    </section>
+  </main>
+
+  <footer class="foot" id="foot">Atualizado —</footer>
+  <script src="/remote/app.js"></script>
+</body>
+</html>
